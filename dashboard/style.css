@@ -1,0 +1,22 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTY8JsAXpfOURVZig3BvoIrBMjT-dl8iXYsg&s');
+}
+.background {
+    background-image: url('https://mrwallpaper.com/images/high/4k-minimalist-green-aesthetic-forest-4dy9rddb1uqxgb46.jpg');
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    padding-top: 80px;
+}
+
+/* Text Content */
+.content {
+    color: white;
+    max-width: 45%;
+}
