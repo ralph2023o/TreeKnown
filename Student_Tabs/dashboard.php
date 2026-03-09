@@ -37,7 +37,7 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TreeKnown - Student Dashboard</title>
+<title>TreeKnown - Student </title>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -144,7 +144,7 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
 </head>
 <body>
 <header>
-    <h1>TreeKnown - Student Dashboard</h1>
+    <h1>TreeKnown - Student </h1>
     <p>Welcome, <?= htmlspecialchars($user_name) ?></p>
 </header>
 <nav>

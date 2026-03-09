@@ -6,7 +6,7 @@ if(isset($_POST['login'])){
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT * FROM USERS WHERE email=? AND password=?");
+    $stmt = $conn->prepare("SELECT * FROM USERS WHERE email=? AND password=? AND status='approved'");
     $stmt->execute([$email, $password]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -25,7 +25,7 @@ if(isset($_POST['login'])){
         }
         exit;
     } else {
-        $error = "Invalid email or password.";
+        $error = "Invalid email/password or account not approved yet.";
     }
 }
 ?>
@@ -36,7 +36,6 @@ if(isset($_POST['login'])){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TreeKnown - Login</title>
 <style>
-    /* Reset some default styles */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
 
     body {
@@ -89,10 +88,22 @@ if(isset($_POST['login'])){
         font-size: 16px;
         cursor: pointer;
         transition: background 0.3s;
+        margin-bottom: 10px;
     }
 
     .login-container button:hover {
         background: #2E8B57;
+    }
+
+    .register-btn {
+        background: #fff;
+        color: #36A2EB;
+        border: 2px solid #36A2EB;
+    }
+
+    .register-btn:hover {
+        background: #36A2EB;
+        color: #fff;
     }
 
     .error {
@@ -118,6 +129,12 @@ if(isset($_POST['login'])){
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit" name="login">Login</button>
     </form>
+
+    <!-- Register Button -->
+    <form action="register.php" method="get">
+        <button type="submit" class="register-btn">Register</button>
+    </form>
+
     <?php if(isset($error)) echo "<p class='error'>$error</p>"; ?>
 </div>
 
