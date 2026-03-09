@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+include __DIR__ . '/config/db.php';
 
 // Only admin can access
 if(!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 'admin'){

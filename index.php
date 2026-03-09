@@ -1,29 +1,36 @@
 <?php
-include 'config/db.php';
+include __DIR__ . '/config/db.php';
+
+if(isset($conn)){
+    echo "DB connected!";
+} else {
+    echo "DB connection is NULL!";
+}
 
 if(isset($_POST['login'])){
     $email = $_POST['email'];
-    $password = $_POST['password']; // plain text for prototype
+    $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT * FROM USERS WHERE email=?");
-    $stmt->execute([$email]);
+    $stmt = $conn->prepare("SELECT * FROM USERS WHERE email=? AND password=?");
+    $stmt->execute([$email, $password]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if($user && $user['password'] == $password){
+    if($user){
         $_SESSION['user_id'] = $user['user_id'];
+        $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_role'] = $user['role'];
 
         // Redirect based on role
-        if($user['role']=='admin'){
+        if($user['role'] == 'admin'){
             header("Location: admin_panel.php");
-        } elseif($user['role']=='teacher'){
-            header("Location: teacher_dashboard.php");
+        } elseif($user['role'] == 'teacher'){
+            header("Location: teacher_tabs/dashboard.php");
         } else {
             header("Location: student_dashboard.php");
         }
         exit;
     } else {
-        $error = "Invalid email or password";
+        $error = "Invalid email or password.";
     }
 }
 ?>

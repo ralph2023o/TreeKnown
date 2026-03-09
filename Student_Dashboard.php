@@ -1,5 +1,5 @@
 <?php
-include 'config/db.php';
+include __DIR__ . '/config/db.php';
 
 // Ensure user is a student
 if(!isRole('student')){
@@ -48,8 +48,8 @@ $pending_submissions = $pending_stmt->fetchColumn();
 
 <nav>
     <a href="student_dashboard.php">Dashboard</a>
-    <a href="student_tabs/submit_tree.php">Submit Tree</a>
-    <a href="student_tabs/library.php">Tree Library</a>
+    <a href="Student/submit_photo.php">Submit Tree</a>
+    <a href="Student/library.php">Tree Library</a>
     <a href="logout.php">Logout</a>
 </nav>
 

@@ -1,21 +1,27 @@
 <?php
-// db.php
-$host = 'localhost';
-$db   = 'TreeKnown';
-$user = 'root';
-$pass = '';
-$charset = 'utf8mb4';
-
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
+// Database configuration
+$host = "localhost";
+$dbname = "treeknown";  // Database name
+$user = "root";          // Your DB username
+$pass = "";              // Your DB password
 
 try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
+    $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
 }
+catch(PDOException $e) {
+    echo "PDO Exception: " . $e->getMessage();
+    $conn = null;
+}
+
+// Start session for all pages
+if(session_status() == PHP_SESSION_NONE){
+    session_start();
+}
+
+// Function to check user role
+function isRole($role){
+    return isset($_SESSION['user_role']) && $_SESSION['user_role'] == $role;
+}
+?>
