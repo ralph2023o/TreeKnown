@@ -19,6 +19,15 @@ if(isset($_GET['action'], $_GET['id']) && $tab == 'pending_users'){
     header("Location: ?tab=pending_users");
     exit;
 }
+if(isset($_GET['action'], $_GET['id']) && $_GET['action']=='delete' && $tab=='users'){
+    $id = intval($_GET['id']);
+    // Prevent deleting yourself
+    if($id != $_SESSION['user_id']){
+        $conn->prepare("DELETE FROM USERS WHERE user_id=?")->execute([$id]);
+    }
+    header("Location: ?tab=users");
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -156,8 +165,12 @@ switch($tab){
             $users = $conn->query("SELECT * FROM USERS")->fetchAll(PDO::FETCH_ASSOC);
             echo "<h2>User Management</h2><ul>";
             foreach($users as $u){
-                echo "<li>{$u['name']} ({$u['role']}) - {$u['email']} [<a href='?tab=users&action=edit&id={$u['user_id']}'>Edit</a>]</li>";
-            }
+         echo "<li>
+            {$u['name']} ({$u['role']}) - {$u['email']} 
+            [<a href='?tab=users&action=edit&id={$u['user_id']}'>Edit</a>] 
+            [<a href='?tab=users&action=delete&id={$u['user_id']}' onclick=\"return confirm('Are you sure you want to delete this user?');\" style='color:red;'>Delete</a>]
+          </li>";
+}
             echo "</ul>";
         }
         break;
