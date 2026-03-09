@@ -8,7 +8,7 @@ CREATE TABLE USERS (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,  -- plain text for prototype (hash in production)
     role ENUM('admin','teacher','student') NOT NULL,
-    student_id VARCHAR(20) NULL,      -- optional for students
+    student_id INT(20) NULL,      -- optional for students
     status ENUM('pending','approved','rejected') DEFAULT 'pending',  -- for user approval
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,16 +32,22 @@ CREATE TABLE TREE_SUBMISSIONS (
     date_submitted DATETIME DEFAULT CURRENT_TIMESTAMP,
     status ENUM('pending','approved','rejected') DEFAULT 'pending',
     photo VARCHAR(255) NULL,          -- filename in uploads/
-    FOREIGN KEY (species_id) REFERENCES SPECIES_LIBRARY(species_id),
-    FOREIGN KEY (submitted_by) REFERENCES USERS(user_id),
+      FOREIGN KEY (species_id) REFERENCES SPECIES_LIBRARY(species_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (submitted_by) REFERENCES USERS(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
     FOREIGN KEY (verified_by) REFERENCES USERS(user_id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
 );
 
 -- Sample Users
 INSERT INTO USERS (name,email,password,role,student_id,status) VALUES
 ('Admin User','admin@treeknown.com','admin123','admin',NULL,'approved'),
 ('Teacher One','teacher1@treeknown.com','teach123','teacher',NULL,'approved'),
-('Student One','student1@treeknown.com','stud123','student','S123','pending');
+('Student One','student1@treeknown.com','stud123','student', 0120,'approved');
 
 -- Sample Species
 INSERT INTO SPECIES_LIBRARY (species_name,description) VALUES
@@ -49,5 +55,3 @@ INSERT INTO SPECIES_LIBRARY (species_name,description) VALUES
 ('Narra','Philippine national tree');
 
 -- Sample Tree submissions
-INSERT INTO TREE_SUBMISSIONS (species_id, location_name, submitted_by, status, photo, lat, lng) VALUES
-(1,'Campus Garden',3,'pending','tree1.jpg',14.123456,121.123456);
