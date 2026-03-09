@@ -112,34 +112,42 @@ switch($tab){
 
 break;
 
-    case 'library':
-        // Approved/All student trees
-        echo "<h2>Your Submitted Trees</h2>";
-        $trees = $conn->prepare("
-            SELECT t.tree_id, s.species_name, t.location_name, t.status, t.photo
-            FROM TREE_SUBMISSIONS t
-            JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
-            WHERE t.submitted_by=?
-            ORDER BY t.date_submitted DESC
-        ");
-        $trees->execute([$user_id]);
-        $results = $trees->fetchAll(PDO::FETCH_ASSOC);
+   case 'library':
+    $trees = $conn->query("
+        SELECT t.tree_id, s.species_name, t.location_name, u.name AS submitted_by, t.photo
+        FROM TREE_SUBMISSIONS t
+        JOIN USERS u ON t.submitted_by = u.user_id
+        JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
+        WHERE t.status='approved'
+    ")->fetchAll(PDO::FETCH_ASSOC);
 
-        if(count($results) > 0){
-            echo "<ul>";
-            foreach($results as $t){
-                $status_class = $t['status']=='approved' ? 'status-approved' : ($t['status']=='pending' ? 'status-pending' : 'status-rejected');
-                echo "<li>";
-                echo "Tree ID {$t['tree_id']} - {$t['species_name']} at {$t['location_name']} ";
-                echo "(Status: <span class='$status_class'>{$t['status']}</span>)<br>";
-                if($t['photo']) echo "<img src='../uploads/{$t['photo']}' width='150'><br>";
-                echo "</li>";
-            }
-            echo "</ul>";
-        } else {
-            echo "<p>No submissions yet.</p>";
-        }
-        break;
+    echo "<h2>Tree Library</h2>";
+
+    // Card container
+    echo "<div style='display:flex; flex-wrap:wrap; gap:20px;'>";
+
+    foreach($trees as $t){
+        $photo = $t['photo'] ? "../uploads/{$t['photo']}" : "https://via.placeholder.com/150";
+        echo "<div style='
+            border:1px solid #ccc; 
+            border-radius:10px; 
+            padding:15px; 
+            width:220px; 
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            background:#fff;
+        '>
+            <img src='{$photo}' style='width:150px; height:150px; object-fit:cover; border-radius:5px; margin-bottom:10px;'>
+            <h3 style='margin:5px 0;'>{$t['species_name']}</h3>
+            <p style='margin:2px 0; font-size:14px; color:#555;'>{$t['location_name']}</p>
+            <p style='margin:2px 0; font-size:12px; color:#777;'>Submitted by {$t['submitted_by']}</p>
+        </div>";
+    }
+
+    echo "</div>";
+    break;
 
     case 'scan':
         // Placeholder for AI scanning

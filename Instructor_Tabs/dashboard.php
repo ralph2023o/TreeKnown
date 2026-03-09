@@ -72,8 +72,8 @@ switch($tab){
             echo "<ul>";
             foreach($trees as $t){
                 echo "<li>Tree ID {$t['tree_id']} - {$t['species_name']} submitted by {$t['submitted_by']} 
-                [<a href='../admin_tabs/verify_tree.php?id={$t['tree_id']}&action=approve'>Approve</a>] 
-                [<a href='../admin_tabs/verify_tree.php?id={$t['tree_id']}&action=reject'>Reject</a>]</li>";
+                [<a href='../verify_tree.php?id={$t['tree_id']}&action=approve'>Approve</a>] 
+                [<a href='../verify_tree.php?id={$t['tree_id']}&action=reject'>Reject</a>]</li>";
             }
             echo "</ul>";
         } else {
@@ -82,29 +82,42 @@ switch($tab){
         break;
 
     // ----- Library Tab -----
-    case 'library':
-        $trees = $conn->query("
-            SELECT t.tree_id, s.species_name, t.location_name, u.name AS submitted_by
-            FROM TREE_SUBMISSIONS t
-            JOIN USERS u ON t.submitted_by = u.user_id
-            JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
-            WHERE t.status='approved'
-            ORDER BY t.date_submitted DESC
-        ")->fetchAll(PDO::FETCH_ASSOC);
+   case 'library':
+    $trees = $conn->query("
+        SELECT t.tree_id, s.species_name, t.location_name, u.name AS submitted_by, t.photo
+        FROM TREE_SUBMISSIONS t
+        JOIN USERS u ON t.submitted_by = u.user_id
+        JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
+        WHERE t.status='approved'
+    ")->fetchAll(PDO::FETCH_ASSOC);
 
-        echo "<h2>Tree Library (Approved)</h2>";
+    echo "<h2>Tree Library</h2>";
 
-        if(count($trees) > 0){
-            echo "<ul>";
-            foreach($trees as $t){
-                echo "<li>Tree ID {$t['tree_id']} - {$t['species_name']} at {$t['location_name']} (Submitted by {$t['submitted_by']})</li>";
-            }
-            echo "</ul>";
-        } else {
-            echo "<p>No approved trees in library yet.</p>";
-        }
-        break;
+    // Card container
+    echo "<div style='display:flex; flex-wrap:wrap; gap:20px;'>";
 
+    foreach($trees as $t){
+        $photo = $t['photo'] ? "../uploads/{$t['photo']}" : "https://via.placeholder.com/150";
+        echo "<div style='
+            border:1px solid #ccc; 
+            border-radius:10px; 
+            padding:15px; 
+            width:220px; 
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            background:#fff;
+        '>
+            <img src='{$photo}' style='width:150px; height:150px; object-fit:cover; border-radius:5px; margin-bottom:10px;'>
+            <h3 style='margin:5px 0;'>{$t['species_name']}</h3>
+            <p style='margin:2px 0; font-size:14px; color:#555;'>{$t['location_name']}</p>
+            <p style='margin:2px 0; font-size:12px; color:#777;'>Submitted by {$t['submitted_by']}</p>
+        </div>";
+    }
+
+    echo "</div>";
+    break;
     default:
         echo "<p>Tab not found.</p>";
 }
