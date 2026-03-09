@@ -1,146 +1,102 @@
-3
 <?php
-// dashboard.php
+session_start();
+include 'db.php';
 
-// Example placeholders for dynamic data
-$totalUsers = 120;   // Placeholder for total users
-$totalSales = 4500;  // Placeholder for total sales
-$pendingOrders = 15; // Placeholder for pending orders
+// Only admin can access
+if(!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 'admin'){
+    die("Access Denied");
+}
+
+// Tab selection
+$tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <title>TreeKnown - Admin Panel Prototype</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .sidebar {
-            min-height: 100vh;
-            background-color: #343a40;
-            color: white;
-        }
-        .sidebar a {
-            color: white;
-            display: block;
-            padding: 10px;
-            text-decoration: none;
-        }
-        .sidebar a:hover {
-            background-color: #495057;
-        }
-        .card {
-            margin-bottom: 20px;
-        }
+        body { font-family: Arial; margin: 0; background: #f4f4f4; }
+        header { background: #228B22; color: #fff; padding: 15px; text-align: center;}
+        nav { display: flex; background: #2E8B57; }
+        nav a { flex:1; padding: 10px; text-align: center; color: #fff; text-decoration: none;}
+        nav a.active { background: #3CB371; }
+        .container { padding: 20px; }
+        ul { list-style: none; padding: 0; }
+        li { background: #fff; margin:5px 0; padding:10px; border-radius:5px; box-shadow:0 2px 3px rgba(0,0,0,0.1);}
     </style>
 </head>
 <body>
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-2 sidebar p-3">
-            <h4>Admin Panel</h4>
-            <a href="#">Dashboard</a>
-            <a href="#">Users</a>
-            <a href="#">Orders</a>
-            <a href="#">Products</a>
-            <a href="#">Settings</a>
-        </div>
+<header>
+    <h1>TreeKnown - Admin Panel (Prototype)</h1>
+</header>
+<nav>
+    <a href="?tab=dashboard" class="<?= $tab=='dashboard'?'active':'' ?>">Dashboard</a>
+    <a href="?tab=users" class="<?= $tab=='users'?'active':'' ?>">Users</a>
+    <a href="?tab=verification" class="<?= $tab=='verification'?'active':'' ?>">Tree Verification</a>
+    <a href="?tab=library" class="<?= $tab=='library'?'active':'' ?>">Tree Library</a>
+</nav>
+<div class="container">
+<?php
+switch($tab){
+    case 'dashboard':
+        $total_students = $conn->query("SELECT COUNT(*) FROM USERS WHERE role='student'")->fetchColumn();
+        $total_teachers = $conn->query("SELECT COUNT(*) FROM USERS WHERE role='teacher'")->fetchColumn();
+        $total_trees = $conn->query("SELECT COUNT(*) FROM TREE_SUBMISSIONS")->fetchColumn();
+        $pending_trees = $conn->query("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE status='pending'")->fetchColumn();
+        echo "<h2>Dashboard</h2>";
+        echo "<ul>
+            <li>Total Students: $total_students</li>
+            <li>Total Teachers: $total_teachers</li>
+            <li>Total Trees: $total_trees</li>
+            <li>Pending Trees: $pending_trees</li>
+        </ul>";
+        break;
 
-        <!-- Main Content -->
-        <div class="col-md-10 p-4">
-            <h2>Dashboard</h2>
-
-            <!-- Stats Cards -->
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card text-bg-primary p-3">
-                        <h5>Total Users</h5>
-                        <h2><?php echo $totalUsers; ?></h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card text-bg-success p-3">
-                        <h5>Total Sales</h5>
-                        <h2><?php echo $totalSales; ?></h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card text-bg-warning p-3">
-                        <h5>Pending Orders</h5>
-                        <h2><?php echo $pendingOrders; ?></h2>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Placeholder Table -->
-            <div class="card mt-4 p-3">
-                <h5>Recent Users</h5>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>John Doe</td>
-                            <td>john@example.com</td>
-                            <td>Admin</td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>Jane Smith</td>
-                            <td>jane@example.com</td>
-                            <td>User</td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>Bob Johnson</td>
-                            <td>bob@example.com</td>
-                            <td>User</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Placeholder Chart -->
-            <div class="card mt-4 p-3">
-                <h5>Sales Overview</h5>
-                <canvas id="salesChart" height="100"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- JS Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    const salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-            datasets: [{
-                label: 'Sales',
-                data: [1200, 1900, 3000, 2500, 4000],
-                borderColor: 'rgba(75, 192, 192, 1)',
-                fill: false,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
+    case 'users':
+        $users = $conn->query("SELECT name,email,role,student_id FROM USERS")->fetchAll(PDO::FETCH_ASSOC);
+        echo "<h2>Users Management</h2><ul>";
+        foreach($users as $u){
+            echo "<li>{$u['name']} ({$u['role']}) - {$u['email']}</li>";
         }
-    });
-</script>
+        echo "</ul>";
+        break;
+
+    case 'verification':
+        $trees = $conn->query("
+            SELECT t.tree_id, s.species_name, u.name AS submitted_by
+            FROM TREE_SUBMISSIONS t
+            JOIN USERS u ON t.submitted_by = u.user_id
+            JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
+            WHERE t.status='pending'
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        echo "<h2>Pending Tree Verification</h2><ul>";
+        foreach($trees as $t){
+            echo "<li>Tree ID {$t['tree_id']} - {$t['species_name']} submitted by {$t['submitted_by']} 
+            [<a href='verify_tree.php?id={$t['tree_id']}&action=approve'>Approve</a>] 
+            [<a href='verify_tree.php?id={$t['tree_id']}&action=reject'>Reject</a>]</li>";
+        }
+        echo "</ul>";
+        break;
+
+    case 'library':
+        $trees = $conn->query("
+            SELECT t.tree_id, s.species_name, t.location_name, u.name AS submitted_by
+            FROM TREE_SUBMISSIONS t
+            JOIN USERS u ON t.submitted_by = u.user_id
+            JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
+            WHERE t.status='approved'
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        echo "<h2>Tree Library (Approved)</h2><ul>";
+        foreach($trees as $t){
+            echo "<li>Tree ID {$t['tree_id']} - {$t['species_name']} at {$t['location_name']} (Submitted by {$t['submitted_by']})</li>";
+        }
+        echo "</ul>";
+        break;
+
+    default:
+        echo "<p>Tab not found</p>";
+}
+?>
+</div>
 </body>
 </html>
