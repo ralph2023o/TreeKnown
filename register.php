@@ -51,6 +51,9 @@ if(isset($_POST['register'])){
         <input type="text" name="student_id" placeholder="Student ID (optional)">
         <button type="submit" name="register">Register</button>
     </form>
+    <form action="index.php" method="get">
+        <button type="submit" class="register-btn">BACK TO LOGIN</button>
+    </form>
     <?php 
     if(isset($error)) echo "<p class='error'>$error</p>";
     if(isset($success)) echo "<p class='success'>$success</p>";
