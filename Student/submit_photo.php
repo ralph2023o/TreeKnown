@@ -1,4 +1,5 @@
 <?php
+include __DIR__ . '/../config/db.php'; 
 if(!isRole('student')){
     die("Access Denied");
 }
