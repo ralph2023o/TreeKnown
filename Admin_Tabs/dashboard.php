@@ -1,6 +1,6 @@
 <?php
 session_start();
-include __DIR__ . '/config/db.php';
+include __DIR__ . '/../config/db.php'; 
 
 // Only admin can access
 if(!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 'admin'){
@@ -29,12 +29,12 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
 <header>
     <h1>TreeKnown - Admin Panel (Prototype)</h1>
 </header>
-<nav>
-    <a href="?tab=dashboard" class="<?= $tab=='dashboard'?'active':'' ?>">Dashboard</a>
-    <a href="?tab=users" class="<?= $tab=='users'?'active':'' ?>">Users</a>
-    <a href="?tab=verification" class="<?= $tab=='verification'?'active':'' ?>">Tree Verification</a>
-    <a href="?tab=library" class="<?= $tab=='library'?'active':'' ?>">Tree Library</a>
-</nav>
+<nav style="display:flex; align-items:center; background:#2E8B57;">
+    <div style="display:flex; flex:1;">
+        <a href="?tab=dashboard" class="<?= $tab=='dashboard'?'active':'' ?>">Dashboard</a>
+        <a href="?tab=verification" class="<?= $tab=='verification'?'active':'' ?>">Tree Verification</a>
+        <a href="?tab=library" class="<?= $tab=='library'?'active':'' ?>">Tree Library</a>
+    
 <div class="container">
 <?php
 switch($tab){

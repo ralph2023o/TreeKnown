@@ -1,5 +1,5 @@
 <?php
-// Display pending trees for Admin
+include __DIR__ . '/../config/db.php';
 $stmt = $conn->query("
     SELECT t.tree_id, s.species_name, t.location_name, u.name AS submitted_by, t.photo
     FROM TREE_SUBMISSIONS t

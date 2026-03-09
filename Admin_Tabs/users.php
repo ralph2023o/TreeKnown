@@ -1,5 +1,5 @@
 <?php
-// Fetch all users
+include __DIR__ . '/../config/db.php';
 $stmt = $conn->query("SELECT user_id, name, email, role, student_id FROM USERS ORDER BY role, name");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

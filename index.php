@@ -1,11 +1,6 @@
 <?php
 include __DIR__ . '/config/db.php';
 
-if(isset($conn)){
-    echo "DB connected!";
-} else {
-    echo "DB connection is NULL!";
-}
 
 if(isset($_POST['login'])){
     $email = $_POST['email'];
@@ -22,11 +17,11 @@ if(isset($_POST['login'])){
 
         // Redirect based on role
         if($user['role'] == 'admin'){
-            header("Location: admin_panel.php");
+            header("Location: Admin_Tabs/dashboard.php");
         } elseif($user['role'] == 'teacher'){
-            header("Location: instructor_dashboard.php");
+            header("Location: Instructor_Tabs/dashboard.php");
         } else {
-            header("Location: student_dashboard.php");
+            header("Location: Student_Tabs/dashboard.php");
         }
         exit;
     } else {
