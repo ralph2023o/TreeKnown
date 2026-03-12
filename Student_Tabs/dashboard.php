@@ -1,8 +1,8 @@
-<?php
+```php
+<?php 
 session_start();
 include __DIR__ . '/../config/db.php'; 
 
-// Ensure user is a student
 if(!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 'student'){
     die("Access Denied");
 }
@@ -12,322 +12,414 @@ $user_name = $_SESSION['user_name'] ?? 'Student';
 
 if(isset($_POST['submit_tree'])){
     $species_id = $_POST['species_id'];
-    $location_name = $_POST['location_name']; // descriptive name
-    $lat = $_POST['lat'];  // precise latitude
-    $lng = $_POST['lng'];  // precise longitude
+    $location_name = $_POST['location_name'];
+    $lat = $_POST['lat'];
+    $lng = $_POST['lng'];
 
     $photo = $_FILES['photo']['name'];
     $tmp = $_FILES['photo']['tmp_name'];
     $upload_path = "../uploads/" . $photo;
-    move_uploaded_file($tmp, $upload_path);
 
-  $stmt = $conn->prepare("
-    INSERT INTO TREE_SUBMISSIONS 
-    (species_id, submitted_by, location_name, lat, lng, photo, status)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending')
-");
-$stmt->execute([$species_id, $user_id, $location_name, $lat, $lng, $photo]);
-    $success = "Tree submitted successfully!";
+    move_uploaded_file($tmp,$upload_path);
+
+    $stmt = $conn->prepare("
+        INSERT INTO TREE_SUBMISSIONS 
+        (species_id, submitted_by, location_name, lat, lng, photo, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending')
+    ");
+
+    $stmt->execute([$species_id,$user_id,$location_name,$lat,$lng,$photo]);
+
+    $success = "🌳 Tree submitted successfully!";
 }
 
-$tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
+$tab = $_GET['tab'] ?? 'dashboard';
 ?>
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TreeKnown - Student </title>
+<title>TreeKnown Student</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        background: #e0f7e9;
-    }
-    header {
-        background: #228B22;
-        color: white;
-        padding: 20px;
-        text-align: center;
-    }
-    nav {
-        background: #2E8B57;
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        padding: 10px 0;
-    }
-    nav a {
-        color: white;
-        text-decoration: none;
-        margin: 5px 10px;
-        padding: 10px 15px;
-        border-radius: 5px;
-        transition: background 0.3s;
-    }
-    nav a.active, nav a:hover {
-        background: #3CB371;
-    }
-    .container {
-        padding: 20px;
-        max-width: 1200px;
-        margin: auto;
-    }
-    .card {
-        background: #fff;
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
-    .card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-    }
-    .tree-library {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        justify-content: center;
-    }
-    .tree-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        width: 220px;
-        padding: 15px;
-        text-align: center;
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
-    .tree-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    }
-    .tree-card img {
-        width: 150px;
-        height: 150px;
-        object-fit: cover;
-        border-radius: 8px;
-        margin-bottom: 10px;
-    }
-    .tree-card h3 {
-        margin: 5px 0;
-        font-size: 18px;
-        color: #36A2EB;
-    }
-    .tree-card p {
-        margin: 2px 0;
-        font-size: 14px;
-        color: #555;
-    }
-    form input, form select, form button {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 15px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        font-size: 14px;
-    }
-    form button {
-        background: #36A2EB;
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-    form button:hover {
-        background: #2E8B57;
-    }
-    .success { color: green; margin-bottom: 15px; }
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+background:linear-gradient(135deg,#d4fc79,#96e6a1);
+display:flex;
+min-height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:230px;
+height:100vh;
+background:linear-gradient(180deg,#14532d,#16a34a);
+padding:25px;
+color:white;
+position:fixed;
+}
+
+.sidebar h2{
+text-align:center;
+margin-bottom:30px;
+}
+
+.sidebar a{
+display:block;
+padding:12px;
+margin:8px 0;
+color:white;
+text-decoration:none;
+border-radius:8px;
+transition:all 0.3s ease;
+}
+
+.sidebar a:hover{
+background:rgba(255,255,255,0.25);
+transform:translateX(5px);
+}
+
+.sidebar a.active{
+background:rgba(255,255,255,0.25);
+}
+
+/* MAIN */
+
+.main{
+margin-left:230px;
+padding:30px;
+width:100%;
+}
+
+/* HEADER */
+
+header{
+background:white;
+padding:20px;
+border-radius:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+margin-bottom:25px;
+}
+
+/* DASHBOARD */
+
+.stats{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+}
+
+.stat-card{
+background:white;
+padding:25px;
+border-radius:15px;
+text-align:center;
+box-shadow:0 10px 20px rgba(0,0,0,0.1);
+transition:all 0.3s ease;
+}
+
+.stat-card:hover{
+transform:translateY(-6px);
+box-shadow:0 15px 30px rgba(0,0,0,0.2);
+}
+
+/* FORM CENTER */
+
+.form-center{
+display:flex;
+justify-content:center;
+}
+
+/* FORM */
+
+form{
+background:white;
+padding:30px;
+border-radius:15px;
+box-shadow:0 10px 25px rgba(0,0,0,0.15);
+max-width:500px;
+width:100%;
+}
+
+form input,
+form select{
+width:100%;
+padding:12px;
+margin:10px 0;
+border-radius:10px;
+border:1px solid #ccc;
+}
+
+form button{
+background:#22c55e;
+color:white;
+padding:12px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+transition:all 0.3s ease;
+}
+
+form button:hover{
+background:#16a34a;
+transform:scale(1.05);
+}
+
+/* MAP */
+
+#map{
+height:300px;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+/* SUCCESS MESSAGE */
+
+.success{
+color:green;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+/* TREE LIBRARY */
+
+.tree-library{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+gap:20px;
+margin-top:20px;
+}
+
+.tree-card{
+background:white;
+border-radius:15px;
+padding:15px;
+text-align:center;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+transition:all 0.3s ease;
+}
+
+.tree-card:hover{
+transform:translateY(-8px) scale(1.03);
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+.tree-card img{
+width:100%;
+height:160px;
+object-fit:cover;
+border-radius:10px;
+margin-bottom:10px;
+}
+
 </style>
+
 </head>
+
 <body>
+
+<div class="sidebar">
+
+<h2>🌳 TreeKnown</h2>
+
+<a href="?tab=dashboard" class="<?= $tab=='dashboard'?'active':'' ?>">Dashboard</a>
+<a href="?tab=submit" class="<?= $tab=='submit'?'active':'' ?>">Submit Tree</a>
+<a href="?tab=library" class="<?= $tab=='library'?'active':'' ?>">Tree Library</a>
+<a href="?tab=scan" class="<?= $tab=='scan'?'active':'' ?>">Scan Tree</a>
+<a href="../logout.php" style="background:red;">Logout</a>
+
+</div>
+
+<div class="main">
+
 <header>
-    <h1>TreeKnown - Student </h1>
-    <p>Welcome, <?= htmlspecialchars($user_name) ?></p>
+<h1>Welcome, <?= htmlspecialchars($user_name) ?> 🌿</h1>
 </header>
-<nav>
-    <a href="?tab=dashboard" class="<?= $tab=='dashboard'?'active':'' ?>">Dashboard</a>
-    <a href="?tab=submit" class="<?= $tab=='submit'?'active':'' ?>">Submit Tree</a>
-    <a href="?tab=library" class="<?= $tab=='library'?'active':'' ?>">Tree Library</a>
-    <a href="?tab=scan" class="<?= $tab=='scan'?'active':'' ?>">Scan Tree</a>
-    <a href="../logout.php" style="color:red; margin-left:20px;">Logout</a>
-</nav>
-<div class="container">
+
 <?php
+
 switch($tab){
 
+/* DASHBOARD */
+
 case 'dashboard':
-    $total_submissions = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=?");
-    $total_submissions->execute([$user_id]);
-    $total_submissions = $total_submissions->fetchColumn();
 
-    $approved_submissions = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=? AND status='approved'");
-    $approved_submissions->execute([$user_id]);
-    $approved_submissions = $approved_submissions->fetchColumn();
+$total = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=?");
+$total->execute([$user_id]);
+$total = $total->fetchColumn();
 
-    $pending_submissions = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=? AND status='pending'");
-    $pending_submissions->execute([$user_id]);
-    $pending_submissions = $pending_submissions->fetchColumn();
+$approved = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=? AND status='approved'");
+$approved->execute([$user_id]);
+$approved = $approved->fetchColumn();
 
-    echo "<h2>Your Stats</h2>";
-    echo "<div class='card'><strong>Total Submissions:</strong> $total_submissions</div>";
-    echo "<div class='card'><strong>Approved:</strong> $approved_submissions</div>";
-    echo "<div class='card'><strong>Pending:</strong> $pending_submissions</div>";
-    break;
+$pending = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=? AND status='pending'");
+$pending->execute([$user_id]);
+$pending = $pending->fetchColumn();
+
+echo "<h2>Student Dashboard</h2>";
+
+echo "<div class='stats'>
+
+<div class='stat-card'>
+<h3>Total Trees</h3>
+<p>$total</p>
+</div>
+
+<div class='stat-card'>
+<h3>Approved</h3>
+<p>$approved</p>
+</div>
+
+<div class='stat-card'>
+<h3>Pending</h3>
+<p>$pending</p>
+</div>
+
+</div>";
+
+break;
+
+
+/* SUBMIT TREE */
 
 case 'submit':
-    echo "<h2>Submit a Tree</h2>";
-    if(isset($success)) echo "<p class='success'>$success</p>";
 
-    // Fetch species for dropdown
-    $species_stmt = $conn->query("SELECT species_id, species_name FROM SPECIES_LIBRARY ORDER BY species_name");
-    $species_list = $species_stmt->fetchAll(PDO::FETCH_ASSOC);
+echo "<h2 style='text-align:center;'>Submit a Tree</h2>";
 
-    echo '<form method="post" enctype="multipart/form-data">';
-    
-    // Species dropdown
-    echo '<select name="species_id" required>
-            <option value="">-- Select Species --</option>';
-    foreach($species_list as $s){
-        echo '<option value="'.$s['species_id'].'">'.htmlspecialchars($s['species_name']).'</option>';
-    }
-    echo '</select>';
+echo "<div class='form-center'>";
 
-    // Descriptive location name
-    echo '<input type="text" name="location_name" placeholder="Location Name" required>';
+if(isset($success)) echo "<p class='success'>$success</p>";
 
-    // Leaflet map for selecting coordinates
-    echo '<p>Select exact location on map:</p>';
-    echo '<div id="map" style="height:300px; margin-bottom:10px;"></div>';
-    echo '<input type="hidden" name="lat" id="lat" required>';
-    echo '<input type="hidden" name="lng" id="lng" required>';
+$species = $conn->query("SELECT species_id,species_name FROM SPECIES_LIBRARY ORDER BY species_name");
 
-    // Photo upload
-    echo '<input type="file" name="photo" required>';
-    echo '<button type="submit" name="submit_tree">Submit Tree</button>';
-    echo '</form>';
+echo '<form method="post" enctype="multipart/form-data">';
 
-    // Leaflet CSS & JS
-    echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css"/>';
-    echo '<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>';
+echo '<select name="species_id" required>
+<option value="">Select Tree Species</option>';
 
-    // Leaflet initialization & click handler
-    echo <<<EOT
+foreach($species as $s){
+echo "<option value='{$s['species_id']}'>{$s['species_name']}</option>";
+}
+
+echo '</select>';
+
+echo '<input type="text" name="location_name" placeholder="Location Name" required>';
+
+echo '<p>Click the map to mark the tree location</p>';
+
+echo '<div id="map"></div>';
+
+echo '<input type="hidden" name="lat" id="lat" required>';
+echo '<input type="hidden" name="lng" id="lng" required>';
+
+echo '<input type="file" name="photo" required>';
+
+echo '<button type="submit" name="submit_tree">Submit Tree</button>';
+
+echo '</form>';
+
+echo "</div>";
+?>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <script>
-const map = L.map('map').setView([8.360288, 124.868472], 20); 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+
+const map=L.map('map').setView([8.360288,124.868472],19);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap'
 }).addTo(map);
 
 let marker;
-map.on('click', function(e){
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
 
-    if(marker){
-        marker.setLatLng(e.latlng);
-    } else {
-        marker = L.marker(e.latlng).addTo(map);
-    }
+map.on('click',function(e){
 
-    document.getElementById('lat').value = lat;
-    document.getElementById('lng').value = lng;
+const lat=e.latlng.lat;
+const lng=e.latlng.lng;
+
+if(marker){
+marker.setLatLng(e.latlng);
+}else{
+marker=L.marker(e.latlng).addTo(map);
+}
+
+document.getElementById('lat').value=lat;
+document.getElementById('lng').value=lng;
+
 });
+
 </script>
-EOT;
+
+<?php
 break;
+
+
+/* TREE LIBRARY */
 
 case 'library':
-    $trees = $conn->query("
-        SELECT t.tree_id, s.species_name, t.location_name, u.name AS submitted_by, t.photo, t.lat, t.lng
-        FROM TREE_SUBMISSIONS t
-        JOIN USERS u ON t.submitted_by = u.user_id
-        JOIN SPECIES_LIBRARY s ON t.species_id = s.species_id
-        WHERE t.status='approved'
-        ORDER BY t.date_submitted DESC
-    ")->fetchAll(PDO::FETCH_ASSOC);
 
-    echo "<h2>Tree Library</h2>";
-    
-    if(count($trees) == 0){
-        echo "<p>No approved trees yet.</p>";
-    } else {
-        // Hover map container
-        echo '<div id="map-hover" style="width:300px; height:200px; position:fixed; top:100px; right:20px; border:1px solid #ccc; z-index:1000;"></div>';
+$trees=$conn->query("
+SELECT t.tree_id,s.species_name,t.location_name,u.name AS submitted_by,t.photo
+FROM TREE_SUBMISSIONS t
+JOIN USERS u ON t.submitted_by=u.user_id
+JOIN SPECIES_LIBRARY s ON t.species_id=s.species_id
+WHERE t.status='approved'
+")->fetchAll(PDO::FETCH_ASSOC);
 
-        echo "<div class='tree-library'>";
-        foreach($trees as $t){
-            $photo = $t['photo'] ? "../uploads/{$t['photo']}" : "https://via.placeholder.com/150";
-            $lat = $t['lat'] ?? 0;
-            $lng = $t['lng'] ?? 0;
+echo "<h2>Tree Library</h2>";
 
-            echo "<div class='tree-card' data-lat='{$lat}' data-lng='{$lng}'>
-                    <img src='{$photo}' alt='{$t['species_name']}'>
-                    <h3>{$t['species_name']}</h3>
-                    <p><strong>Tree ID:</strong> {$t['tree_id']}</p>
-                    <p><strong>Location:</strong> {$t['location_name']}</p>
-                    <p><strong>Submitted by:</strong> {$t['submitted_by']}</p>
-                  </div>";
-        }
-        echo "</div>";
+echo "<div class='tree-library'>";
 
-        // Leaflet JS & CSS
-        echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css"/>';
-        echo '<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>';
+foreach($trees as $t){
 
-        // Hover map script
-        echo <<<EOT
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const hoverMap = L.map('map-hover', { zoomControl: false }).setView([0,0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(hoverMap);
+$photo=$t['photo'] ? "../uploads/".$t['photo'] : "https://via.placeholder.com/200";
 
-    let hoverMarker;
+echo "<div class='tree-card'>
 
-    document.querySelectorAll('.tree-card').forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            const lat = parseFloat(card.dataset.lat);
-            const lng = parseFloat(card.dataset.lng);
+<img src='$photo'>
 
-            if(!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0){
-                hoverMap.setView([lat, lng], 20);
+<h3>{$t['species_name']}</h3>
 
-                if(hoverMarker){
-                    hoverMarker.setLatLng([lat, lng]);
-                } else {
-                    hoverMarker = L.marker([lat, lng]).addTo(hoverMap);
-                }
-            }
-        });
+<p>{$t['location_name']}</p>
 
-        card.addEventListener('mouseleave', () => {
-            hoverMap.setView([0,0], 2);
-            if(hoverMarker) hoverMarker.remove();
-            hoverMarker = null;
-        });
-    });
-});
-</script>
-EOT;
-    }
+<p>By {$t['submitted_by']}</p>
+
+</div>";
+}
+
+echo "</div>";
+
 break;
 
-case 'scan':
-    echo "<h2>Scan Tree (Coming Soon!)</h2>";
-    echo "<p>This feature will allow you to scan a tree and automatically identify its species using AI.</p>";
-    echo "<div class='card' style='text-align:center;'>";
-    echo "<img src='../assets/placeholder.png' alt='AI Scan Placeholder' width='300'>";
-    echo "</div>";
-    break;
 
-default:
-    echo "<p>Tab not found</p>";
+/* SCAN */
+
+case 'scan':
+
+echo "<h2>🌳 AI Tree Scanner (Coming Soon)</h2>";
+echo "<p>This will allow scanning trees using camera.</p>";
+
+break;
+
 }
+
 ?>
+
 </div>
+
 </body>
 </html>
+```
