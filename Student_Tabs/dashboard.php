@@ -9,7 +9,7 @@ if(!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 'student'){
 $user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['user_name'] ?? 'Student';
 
-// Handle tree submission
+/* TREE SUBMISSION */
 $success = false;
 if(isset($_POST['submit_tree'])){
     $species_guess = $_POST['species_guess'];
@@ -19,16 +19,14 @@ if(isset($_POST['submit_tree'])){
 
     $photo = $_FILES['photo']['name'];
     $tmp = $_FILES['photo']['tmp_name'];
-    $upload_path = "../uploads/" . $photo;
-
+    $upload_path = "../uploads/".$photo;
     move_uploaded_file($tmp,$upload_path);
 
     $stmt = $conn->prepare("
-        INSERT INTO TREE_SUBMISSIONS 
-        (species_guess, submitted_by, location_name, lat, lng, photo, status)
-        VALUES (?, ?, ?, ?, ?, ?, 'pending')
+        INSERT INTO TREE_SUBMISSIONS
+        (species_guess,submitted_by,location_name,lat,lng,photo,status)
+        VALUES (?,?,?,?,?,?,'pending')
     ");
-
     $stmt->execute([
         $species_guess,
         $user_id,
@@ -39,6 +37,24 @@ if(isset($_POST['submit_tree'])){
     ]);
 
     $success = true;
+}
+
+/* COMMENT SUBMISSION */
+if(isset($_POST['submit_comment'])){
+    $tree_id = $_POST['tree_id'];
+    $comment = $_POST['comment_text'];
+    $parent = $_POST['parent_comment_id'] ?? null;
+
+    $stmt = $conn->prepare("
+        INSERT INTO COMMENTS(tree_id,user_id,parent_comment_id,comment_text)
+        VALUES(?,?,?,?)
+    ");
+    $stmt->execute([
+        $tree_id,
+        $user_id,
+        $parent,
+        $comment
+    ]);
 }
 
 $tab = $_GET['tab'] ?? 'dashboard';
@@ -52,20 +68,13 @@ $tab = $_GET['tab'] ?? 'dashboard';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <style>
-*{margin:0; padding:0; box-sizing:border-box; font-family:Segoe UI;}
-body{background:linear-gradient(135deg,#d4fc79,#96e6a1); display:flex; min-height:100vh;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI;}
+body{background:linear-gradient(135deg,#d4fc79,#96e6a1);display:flex;min-height:100vh;}
 
 /* SIDEBAR */
-.sidebar{
-    width:230px;
-    height:100vh;
-    background:linear-gradient(180deg,#14532d,#16a34a);
-    padding:25px;
-    color:white;
-    position:fixed;
-}
+.sidebar{width:230px;height:100vh;background:linear-gradient(180deg,#14532d,#16a34a);padding:25px;color:white;position:fixed;}
 .sidebar h2{text-align:center;margin-bottom:30px;}
-.sidebar a{display:block;padding:12px;margin:8px 0;color:white;text-decoration:none;border-radius:8px;transition:all 0.3s ease;}
+.sidebar a{display:block;padding:12px;margin:8px 0;color:white;text-decoration:none;border-radius:8px;transition:0.3s;}
 .sidebar a:hover{background:rgba(255,255,255,0.25);transform:translateX(5px);}
 .sidebar a.active{background:rgba(255,255,255,0.25);}
 
@@ -77,65 +86,47 @@ header{background:white;padding:20px;border-radius:15px;box-shadow:0 5px 15px rg
 
 /* DASHBOARD */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;}
-.stat-card{background:white;padding:25px;border-radius:15px;text-align:center;box-shadow:0 10px 20px rgba(0,0,0,0.1);transition:all 0.3s ease;}
-.stat-card:hover{transform:translateY(-6px);box-shadow:0 15px 30px rgba(0,0,0,0.2);}
-
-/* FORM CENTER */
-.form-center{display:flex;justify-content:center;}
+.stat-card{background:white;padding:25px;border-radius:15px;text-align:center;box-shadow:0 10px 20px rgba(0,0,0,0.1);}
 
 /* FORM */
-form{background:white;padding:30px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,0.15);max-width:500px;width:100%;}
-form input, form select{width:100%;padding:12px;margin:10px 0;border-radius:10px;border:1px solid #ccc;}
-form button{background:#22c55e;color:white;padding:12px;border:none;border-radius:10px;cursor:pointer;transition:all 0.3s ease;}
-form button:hover{background:#16a34a;transform:scale(1.05);}
+form{background:white;padding:25px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,0.15);max-width:500px;}
+form input, form textarea{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #ccc;}
+form button{background:#22c55e;color:white;padding:10px;border:none;border-radius:8px;cursor:pointer;}
 
 /* MAP */
 #map{height:300px;border-radius:10px;margin-bottom:10px;}
 
-/* POPUP MESSAGE */
-.popup{
-    position:fixed;
-    top:20px;
-    left:50%;
-    transform:translateX(-50%);
-    background:#22c55e;
-    color:white;
-    padding:15px 25px;
-    border-radius:10px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.2);
-    z-index:9999;
-    display:none;
-    font-weight:bold;
-    animation: fadein 0.5s;
-}
-@keyframes fadein{
-    from{opacity:0; transform:translateX(-50%) translateY(-20px);}
-    to{opacity:1; transform:translateX(-50%) translateY(0);}
-}
-
-/* TREE LIBRARY */
-.tree-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:20px;
-    margin-top:20px;
-}
+/* TREE GRID */
+.tree-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;}
 .tree-card{
     background:white;
     border-radius:15px;
     padding:15px;
     text-align:center;
     box-shadow:0 5px 15px rgba(0,0,0,0.1);
-    transition:all 0.3s ease;
-    max-width:250px;
-    margin:auto;
+    max-width:250px;   /* LIMIT CARD WIDTH */
+    margin:auto;        /* CENTER CARD */
 }
-.tree-card:hover{transform:translateY(-8px) scale(1.03);box-shadow:0 10px 25px rgba(0,0,0,0.2);}
-.tree-card img{width:100%;height:160px;object-fit:cover;border-radius:10px;margin-bottom:10px;}
+.tree-card img{
+    width:100%;
+    height:160px;
+    object-fit:cover;
+    border-radius:10px;
+}
+
+/* TREE DETAIL */
+.tree-detail{display:flex;gap:20px;background:white;padding:20px;border-radius:15px;box-shadow:0 8px 20px rgba(0,0,0,0.1);align-items:center;margin-bottom:20px;}
+.tree-detail img{width:220px;height:160px;object-fit:cover;border-radius:10px;}
+
+/* COMMENTS */
+.comment{background:white;padding:12px;border-radius:10px;margin-top:10px;border-left:4px solid #16a34a;box-shadow:0 3px 8px rgba(0,0,0,0.05);}
+.reply-form{display:flex;gap:6px;margin-top:6px;}
+.reply-form input{flex:1;padding:6px;font-size:13px;}
+.reply-form button{padding:6px 10px;font-size:13px;background:#16a34a;border:none;border-radius:6px;color:white;}
 </style>
 </head>
-
 <body>
+
 <div class="sidebar">
 <h2>🌳 TreeKnown</h2>
 <a href="?tab=dashboard" class="<?= $tab=='dashboard'?'active':'' ?>">Dashboard</a>
@@ -157,11 +148,9 @@ case 'dashboard':
 $total = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=?");
 $total->execute([$user_id]);
 $total = $total->fetchColumn();
-
 $approved = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=? AND status='approved'");
 $approved->execute([$user_id]);
 $approved = $approved->fetchColumn();
-
 $pending = $conn->prepare("SELECT COUNT(*) FROM TREE_SUBMISSIONS WHERE submitted_by=? AND status='pending'");
 $pending->execute([$user_id]);
 $pending = $pending->fetchColumn();
@@ -176,24 +165,26 @@ break;
 
 /* SUBMIT TREE */
 case 'submit':
-echo "<h2 style='text-align:center;'>Submit a Tree</h2>";
-echo "<div class='form-center'>";
-echo '<form method="post" enctype="multipart/form-data">';
-echo '<input type="text" name="species_guess" placeholder="Your Tree Guess (e.g. Narra)" required>';
-echo '<input type="text" name="location_name" placeholder="Location Name" required>';
-echo '<p>Click the map to mark the tree location</p>';
-echo '<div id="map"></div>';
-echo '<input type="hidden" name="lat" id="lat" required>';
-echo '<input type="hidden" name="lng" id="lng" required>';
-echo '<input type="file" name="photo" required>';
-echo '<button type="submit" name="submit_tree">Submit Tree</button>';
-echo '</form>';
-echo "</div>";
+echo "<h2>Submit Tree</h2>";
+echo '<form method="post" enctype="multipart/form-data">
+<input type="text" name="species_guess" placeholder="Tree Guess" required>
+<input type="text" name="location_name" placeholder="Location" required>
+<p>Click the map to set location</p>
+<div id="map"></div>
+<input type="hidden" name="lat" id="lat" required>
+<input type="hidden" name="lng" id="lng" required>
+<input type="file" name="photo" required>
+<button name="submit_tree">Submit Tree</button>
+</form>';
+
+if($success){
+    echo "<p style='color:green;font-weight:bold;margin-top:10px;'>🌳 Tree Submitted Successfully!</p>";
+}
 ?>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
 const map=L.map('map').setView([8.360288,124.868472],19);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let marker;
 map.on('click',function(e){
     const lat=e.latlng.lat;
@@ -203,16 +194,6 @@ map.on('click',function(e){
     document.getElementById('lat').value=lat;
     document.getElementById('lng').value=lng;
 });
-
-// Show popup if submission successful
-<?php if($success): ?>
-    let popup = document.createElement('div');
-    popup.className = 'popup';
-    popup.innerText = '🌳 Tree Submitted Successfully!';
-    document.body.appendChild(popup);
-    popup.style.display = 'block';
-    setTimeout(()=>{ popup.style.opacity = 0; setTimeout(()=>popup.remove(),500); }, 3000);
-<?php endif; ?>
 </script>
 <?php
 break;
@@ -220,35 +201,92 @@ break;
 /* TREE LIBRARY */
 case 'library':
 $trees = $conn->query("
-    SELECT t.tree_id, s.tree_name, t.species_guess, t.location_name, u.name AS submitted_by, t.photo
-    FROM TREE_SUBMISSIONS t
-    JOIN USERS u ON t.submitted_by = u.user_id
-    LEFT JOIN TREE_LIBRARY s ON t.species_id = s.treelib_id
-    WHERE t.status='approved'
-    ORDER BY t.date_submitted DESC
+SELECT t.tree_id,s.tree_name,t.species_guess,t.location_name,u.name AS submitted_by,t.photo
+FROM TREE_SUBMISSIONS t
+JOIN USERS u ON t.submitted_by=u.user_id
+LEFT JOIN TREE_LIBRARY s ON t.species_id=s.treelib_id
+WHERE t.status='approved'
+ORDER BY t.date_submitted DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 echo "<h2>Tree Library</h2>";
-if(count($trees) == 0){
-    echo "<p>No approved trees yet.</p>";
-} else {
-    echo "<div class='tree-grid'>";
-    foreach($trees as $t){
-        $photo = $t['photo'] ? "../uploads/{$t['photo']}" : "https://via.placeholder.com/150";
-        $tree_name = $t['tree_name'] ?? $t['species_guess'] ?? 'Unknown';
-
-        echo "<div class='tree-card'>
-                <img src='$photo' alt='$tree_name'>
-                <h3>$tree_name</h3>
-                <p>{$t['location_name']}</p>
-                <small>Submitted by {$t['submitted_by']}</small>
-              </div>";
-    }
-    echo "</div>";
+echo "<div class='tree-grid'>";
+foreach($trees as $t){
+    $photo = $t['photo'] ? "../uploads/".$t['photo'] : "https://via.placeholder.com/150";
+    $name = $t['tree_name'] ?? $t['species_guess'];
+    echo "<div class='tree-card'>
+    <img src='$photo'>
+    <h3>$name</h3>
+    <p>{$t['location_name']}</p>
+    <small>Submitted by {$t['submitted_by']}</small><br><br>
+    <a href='?tab=tree&id={$t['tree_id']}' style='background:#16a34a;color:white;padding:8px 12px;border-radius:8px;text-decoration:none;'>💬 View Discussion</a>
+    </div>";
 }
+echo "</div>";
 break;
+
+/* TREE DISCUSSION */
+case 'tree':
+$tree_id = $_GET['id'];
+$stmt = $conn->prepare("
+SELECT t.*,u.name
+FROM TREE_SUBMISSIONS t
+JOIN USERS u ON t.submitted_by=u.user_id
+WHERE tree_id=?
+");
+$stmt->execute([$tree_id]);
+$tree = $stmt->fetch(PDO::FETCH_ASSOC);
+$photo = $tree['photo'] ? "../uploads/".$tree['photo'] : "https://via.placeholder.com/200";
+
+echo "<div class='tree-detail'>
+<img src='$photo'>
+<div>
+<h2>{$tree['species_guess']}</h2>
+<p>📍 {$tree['location_name']}</p>
+<small>Submitted by {$tree['name']}</small>
+</div>
+</div>";
+
+echo "<form method='post'>
+<input type='hidden' name='tree_id' value='$tree_id'>
+<textarea name='comment_text' placeholder='Join the discussion...' required></textarea>
+<button name='submit_comment'>Post Comment</button>
+</form><hr>";
+
+$comments = $conn->prepare("
+SELECT c.*,u.name
+FROM COMMENTS c
+JOIN USERS u ON c.user_id=u.user_id
+WHERE tree_id=?
+ORDER BY created_at ASC
+");
+$comments->execute([$tree_id]);
+$comments = $comments->fetchAll(PDO::FETCH_ASSOC);
+
+function displayComments($comments,$parent=null,$level=0){
+    foreach($comments as $c){
+        if($c['parent_comment_id']==$parent){
+            echo "<div class='comment' style='margin-left:".($level*30)."px'>";
+            echo "<b>{$c['name']}</b> <small>{$c['created_at']}</small><br>";
+            echo "<p>".htmlspecialchars($c['comment_text'])."</p>";
+            echo "<form method='post' class='reply-form'>
+            <input type='hidden' name='tree_id' value='{$c['tree_id']}'>
+            <input type='hidden' name='parent_comment_id' value='{$c['comment_id']}'>
+            <input type='text' name='comment_text' placeholder='Reply...' required>
+            <button name='submit_comment'>Reply</button>
+            </form>";
+            echo "</div>";
+            displayComments($comments,$c['comment_id'],$level+1);
+        }
+    }
+}
+
+displayComments($comments);
+break;
+
 }
 ?>
+
 </div>
 </body>
-</html> c
+</html>

@@ -7,7 +7,7 @@ if(!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 'admin'){
     die("Access Denied");
 }
 
-$tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
+$tab = $_GET['tab'] ?? 'dashboard';
 
 /* USER APPROVAL */
 if(isset($_GET['action'], $_GET['id']) && $tab == 'pending_users'){
@@ -47,14 +47,34 @@ if(isset($_GET['action'], $_GET['id']) && $_GET['action']=='edit_tree'){
     $tree = $tree->fetch(PDO::FETCH_ASSOC);
     $species_list = $conn->query("SELECT * FROM TREE_LIBRARY")->fetchAll(PDO::FETCH_ASSOC);
 }
-?>
 
+/* DELETE COMMENT */
+if(isset($_GET['action'], $_GET['id']) && $_GET['action']=='delete_comment'){
+    $comment_id = intval($_GET['id']);
+    $conn->prepare("DELETE FROM COMMENTS WHERE comment_id=?")->execute([$comment_id]);
+    header("Location:?tab=library");
+    exit;
+}
+
+/* Function to display comments recursively */
+function displayComments($comments, $parent = null, $level = 0){
+    foreach($comments as $c){
+        if($c['parent_comment_id'] == $parent){
+            echo "<div style='margin-left:".($level*30)."px;background:#fff;padding:8px;border-left:3px solid #16a34a;margin-top:5px;border-radius:6px;'>";
+            echo "<b>{$c['name']}</b> <small>{$c['created_at']}</small>";
+            echo "<p>".htmlspecialchars($c['comment_text'])."</p>";
+            echo "<a class='btn delete' href='?tab=library&action=delete_comment&id={$c['comment_id']}' onclick=\"return confirm('Delete this comment?')\">Delete</a>";
+            displayComments($comments,$c['comment_id'],$level+1);
+            echo "</div>";
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>TreeKnown Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial;}
 body{display:flex;background:#f4f6f9;}
@@ -74,15 +94,12 @@ th{background:#2e8b57;color:white;padding:12px;}
 td{padding:10px;border-bottom:1px solid #eee;}
 tr:hover{background:#f9f9f9;}
 .btn{padding:6px 12px;border-radius:5px;color:white;text-decoration:none;font-size:13px;}
-.approve{background:#28a745;}
-.reject{background:#dc3545;}
 .edit{background:#36A2EB;}
 .delete{background:#ff4444;}
 .tree-grid{display:flex;flex-wrap:wrap;gap:20px;}
 .tree-card{width:220px;background:white;border-radius:10px;padding:15px;box-shadow:0 2px 6px rgba(0,0,0,0.1);text-align:center;}
 .tree-card img{width:150px;height:150px;object-fit:cover;border-radius:5px;margin-bottom:10px;}
-form input, form select{width:100%;padding:12px;margin:10px 0;border-radius:10px;border:1px solid #ccc;}
-form button{background:#22c55e;color:white;padding:12px;border:none;border-radius:10px;cursor:pointer;}
+.comment-section{margin-top:15px;}
 </style>
 </head>
 
@@ -101,8 +118,6 @@ form button{background:#22c55e;color:white;padding:12px;border:none;border-radiu
 
 <?php
 switch($tab){
-
-/* DASHBOARD */
 case 'dashboard':
     $total_students = $conn->query("SELECT COUNT(*) FROM USERS WHERE role='student'")->fetchColumn();
     $total_teachers = $conn->query("SELECT COUNT(*) FROM USERS WHERE role='teacher'")->fetchColumn();
@@ -117,25 +132,8 @@ case 'dashboard':
             <div class='card'><h3>Total Trees</h3><p>$total_trees</p></div>
             <div class='card'><h3>Pending Trees</h3><p>$pending_trees</p></div>
           </div>";
-
-    echo "<div style='display:flex;gap:50px;flex-wrap:wrap;'>
-            <div style='width:400px'><canvas id='usersChart'></canvas></div>
-            <div style='width:400px'><canvas id='treesChart'></canvas></div>
-          </div>";
-
-    echo "<script>
-        new Chart(document.getElementById('usersChart'),{
-            type:'doughnut',
-            data:{labels:['Students','Teachers'],datasets:[{data:[$total_students,$total_teachers],backgroundColor:['#36A2EB','#FF6384']}]}
-        });
-        new Chart(document.getElementById('treesChart'),{
-            type:'doughnut',
-            data:{labels:['Pending','Approved','Rejected'],datasets:[{data:[$pending_trees,$approved_trees,$rejected_trees],backgroundColor:['#FFCE56','#36A2EB','#FF6384']}]}
-        });
-    </script>";
 break;
 
-/* USER APPROVAL */
 case 'pending_users':
     $users = $conn->query("SELECT * FROM USERS WHERE status='pending'")->fetchAll(PDO::FETCH_ASSOC);
     echo "<h2>Pending Users</h2>";
@@ -160,7 +158,6 @@ case 'pending_users':
     }
 break;
 
-/* USERS */
 case 'users':
     $users = $conn->query("SELECT * FROM USERS")->fetchAll(PDO::FETCH_ASSOC);
     echo "<h2>User Management</h2>";
@@ -179,49 +176,43 @@ case 'users':
     echo "</table>";
 break;
 
-/* TREE LIBRARY */
 case 'library':
-    // If editing a tree
-    if(isset($_GET['action']) && $_GET['action']=='edit_tree' && isset($tree)){
-        echo "<h2>Edit Tree</h2>";
-        echo "<form method='POST'>";
-        echo "Location:<input type='text' name='location_name' value='{$tree['location_name']}' required><br><br>";
-        echo "Species:<select name='species_id'>";
-        foreach($species_list as $s){
-            $selected = ($s['treelib_id'] == $tree['species_id']) ? 'selected' : '';
-            echo "<option value='{$s['treelib_id']}' $selected>{$s['tree_name']}</option>";
-        }
-        echo "</select><br><br>";
-        echo "<button type='submit'>Update Tree</button>";
-        echo "</form>";
-    } else {
-        $trees = $conn->query("
-            SELECT t.tree_id, t.location_name, t.photo, u.name AS submitted_by, s.tree_name
-            FROM TREE_SUBMISSIONS t
-            JOIN USERS u ON t.submitted_by=u.user_id
-            LEFT JOIN TREE_LIBRARY s ON t.species_id=s.treelib_id
-            WHERE t.status='approved'
-            ORDER BY t.date_submitted DESC
-        ")->fetchAll(PDO::FETCH_ASSOC);
+    $trees = $conn->query("
+        SELECT t.tree_id, t.location_name, t.photo, u.name AS submitted_by, s.tree_name
+        FROM TREE_SUBMISSIONS t
+        JOIN USERS u ON t.submitted_by=u.user_id
+        LEFT JOIN TREE_LIBRARY s ON t.species_id=s.treelib_id
+        WHERE t.status='approved'
+        ORDER BY t.date_submitted DESC
+    ")->fetchAll(PDO::FETCH_ASSOC);
 
-        echo "<h2>Tree Library</h2>";
-        if(count($trees)==0){ echo "<p>No approved trees yet.</p>"; }
-        else{
-            echo "<div class='tree-grid'>";
-            foreach($trees as $t){
-                $photo = $t['photo'] ? "../uploads/{$t['photo']}" : "https://via.placeholder.com/150";
-                $tree_name = $t['tree_name'] ?? 'Unknown';
-                echo "<div class='tree-card'>
-                        <img src='$photo' alt='$tree_name'>
-                        <h3>$tree_name</h3>
-                        <p>{$t['location_name']}</p>
-                        <small>Submitted by {$t['submitted_by']}</small>
-                        <br><br>
-                        <a class='btn edit' href='?tab=library&action=edit_tree&id={$t['tree_id']}'>Edit</a>
-                      </div>";
-            }
-            echo "</div>";
+    echo "<h2>Tree Library</h2>";
+    if(count($trees)==0){ echo "<p>No approved trees yet.</p>"; }
+    else{
+        echo "<div class='tree-grid'>";
+        foreach($trees as $t){
+            $photo = $t['photo'] ? "../uploads/{$t['photo']}" : "https://via.placeholder.com/150";
+            $tree_name = $t['tree_name'] ?? 'Unknown';
+            echo "<div class='tree-card'>
+                    <img src='$photo' alt='$tree_name'>
+                    <h3>$tree_name</h3>
+                    <p>{$t['location_name']}</p>
+                    <small>Submitted by {$t['submitted_by']}</small>
+                    <div class='comment-section'>";
+            
+            $comments = $conn->prepare("
+                SELECT c.*, u.name
+                FROM COMMENTS c
+                JOIN USERS u ON c.user_id=u.user_id
+                WHERE c.tree_id=?
+                ORDER BY created_at ASC
+            ");
+            $comments->execute([$t['tree_id']]);
+            displayComments($comments->fetchAll(PDO::FETCH_ASSOC));
+
+            echo "</div></div>";
         }
+        echo "</div>";
     }
 break;
 }
