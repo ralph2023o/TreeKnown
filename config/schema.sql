@@ -86,7 +86,7 @@ VALUES (
     'Canteen',   
     8.3594467   ,           
     124.8682773,         
-    '.\uploads\31.1-Mahogany-Profile.jpg', 
+    'tree1.jpg', 
     3,                       
     'approved'
 );
