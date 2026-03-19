@@ -34,20 +34,49 @@ if(isset($_POST['submit_comment'])){
     $stmt->execute([$tree_id,$_SESSION['user_id'],$parent,$comment]);
 }
 
-function displayComments($comments,$parent=null,$level=0){
-    foreach($comments as $c){
-        if($c['parent_comment_id']==$parent){
-            echo "<div class='comment' style='margin-left:".($level*30)."px'>";
-            echo "<b>{$c['name']}</b> <small>{$c['created_at']}</small><br>";
-            echo "<p>".htmlspecialchars($c['comment_text'])."</p>";
-            echo "<form method='post' class='reply-form'>
-                    <input type='hidden' name='tree_id' value='{$c['tree_id']}'>
-                    <input type='hidden' name='parent_comment_id' value='{$c['comment_id']}'>
-                    <input type='text' name='comment_text' placeholder='Reply...' required>
-                    <button name='submit_comment'>Reply</button>
-                  </form>";
-            echo "</div>";
-            displayComments($comments,$c['comment_id'],$level+1);
+function displayComments($comments, $parent = null, $level = 0, $parentLines = []) {
+    foreach ($comments as $i => $c) {
+        if ($c['parent_comment_id'] == $parent) {
+
+            // Check if this is the LAST child at this level
+            $siblings = array_filter($comments, fn($x) => $x['parent_comment_id'] == $parent);
+            $siblingsArr = array_values($siblings);
+            $isLast = ($c['comment_id'] == end($siblingsArr)['comment_id']);
+
+            // Build the vertical guide lines for parent levels
+            $linesHTML = '';
+            foreach ($parentLines as $hasMore) {
+                if ($hasMore) {
+                    $linesHTML .= '<div class="thread-line"></div>';
+                } else {
+                    $linesHTML .= '<div class="thread-line" style="visibility:hidden"></div>';
+                }
+            }
+
+            // The bend connector for this level
+            if ($level > 0) {
+                $bendClass = $isLast ? 'thread-line-bend last' : 'thread-line-bend';
+                $linesHTML .= '<div class="' . $bendClass . '"></div>';
+            }
+
+            echo '<div class="comment-wrap">';
+            if ($level > 0) {
+                echo '<div class="thread-lines">' . $linesHTML . '</div>';
+            }
+            echo '<div class="comment">';
+            echo '<b>' . htmlspecialchars($c['name']) . '</b> <small>' . $c['created_at'] . '</small><br>';
+            echo '<p>' . htmlspecialchars($c['comment_text']) . '</p>';
+            echo '<form method="post" class="reply-form">
+                <input type="hidden" name="tree_id" value="' . $c['tree_id'] . '">
+                <input type="hidden" name="parent_comment_id" value="' . $c['comment_id'] . '">
+                <input type="text" name="comment_text" placeholder="Reply..." required>
+                <button name="submit_comment">Reply</button>
+            </form>';
+            echo '</div></div>';
+
+            // Recurse — pass down whether THIS level still has more siblings below
+            $newParentLines = array_merge($parentLines, [!$isLast]);
+            displayComments($comments, $c['comment_id'], $level + 1, $newParentLines);
         }
     }
 }
@@ -103,6 +132,54 @@ tr:hover{background:#f9f9f9;}
 .reply-form{display:flex;gap:6px;margin-top:6px;}
 .reply-form input{flex:1;padding:6px;font-size:13px;}
 .reply-form button{padding:6px 10px;font-size:13px;background:#16a34a;border:none;border-radius:6px;color:white;}
+/* Thread guide lines */
+.comment-wrap { display: flex; gap: 0; }
+.thread-lines { display: flex; flex-direction: row; flex-shrink: 0; }
+
+.thread-line {
+    width: 20px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+.thread-line::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 50%;
+    width: 2px;
+    background: rgba(22,163,74,0.3);
+    transform: translateX(-50%);
+}
+
+.thread-line-bend {
+    width: 20px;
+    position: relative;
+    flex-shrink: 0;
+}
+.thread-line-bend::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    width: 2px; height: 22px;
+    background: rgba(22,163,74,0.3);
+    transform: translateX(-50%);
+}
+.thread-line-bend::after {
+    content: '';
+    position: absolute;
+    top: 22px; left: 50%;
+    width: 12px; height: 2px;
+    background: rgba(22,163,74,0.3);
+}
+
+.thread-line-bend.last::before { height: 22px; }
+
+/* Adjust existing .comment to have left margin when nested */
+.comment-wrap .comment {
+    flex: 1;
+    margin-left: 4px;
+    margin-bottom: 10px;
+}
 </style>
 </head>
 <body>
